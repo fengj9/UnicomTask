@@ -3,10 +3,18 @@
 # @Author  : srcrs
 # @Email   : srcrs@foxmail.com
 
-import requests,json,time,re,login,logging,traceback,os,random,notify
+import requests,json,time,re,login,logging,traceback,random,notify,argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--username', type=str, required=True)
+parser.add_argument('--password', type=str, required=True)
+parser.add_argument('--appid', type=str, required=True)
+parser.add_argument('--lotteryNum', type=int, required=True)
+parser.add_argument('--notifyUrl', type=str, required=True)
+args = parser.parse_args()
 
 #用户登录
-client = login.login()
+client = login.login(args.username, args.password, args.appid)
 
 #获取沃之树首页，得到领流量的目标值
 def get_woTree_glowList():
@@ -48,10 +56,11 @@ def woTree_task():
 #每日签到，1积分 +4 积分(翻倍)，第七天得到 1G 日包
 #位置: 我的 --> 我的金币
 def daySign_task():
+    global args
     try:
         #参考同类项目 HiCnUnicom 待明日验证是否能加倍成功
         client.headers.update({'referer': 'https://img.client.10010.com/activitys/member/index.html'})
-        param = 'yw_code=&desmobile=' + os.environ.get('USERNAME_COVER') + '&version=android@$8.0100'
+        param = 'yw_code=&desmobile=' + args.username + '&version=android@$8.0100'
         client.get('https://act.10010.com/SigninApp/signin/querySigninActivity.htm?' + param)
         client.headers.update({'referer': 'https://act.10010.com/SigninApp/signin/querySigninActivity.htm?' + param})
         daySign = client.post('https://act.10010.com/SigninApp/signin/daySign')
@@ -245,11 +254,7 @@ def pointsLottery_task():
         oneFree.encoding = 'utf-8'
         res1 = oneFree.json()
         logging.info("【积分抽奖】: " + res1['RspMsg'] + ' x免费')
-        num = 0
-        #如果用户未设置此值，将不会自动抽奖
-        if len(os.environ.get('LOTTERY_NUM')) != 0:
-            num = int(os.environ.get('LOTTERY_NUM'))
-        for i in range(num):
+        for i in range(args.lotteryNum):
             #用积分兑换抽奖机会
             client.get('https://m.client.10010.com/dailylottery/static/integral/duihuan?goldnumber=10&banrate=30&usernumberofjsp=' + numjsp)
             #进行抽奖
@@ -304,7 +309,4 @@ if __name__ == '__main__':
         woTree_task()
         openBox_task()
         collectFlow_task()
-    if len(os.environ.get('EMAIL_COVER')) != 0:
-        notify.sendEmail()
-    if len(os.environ.get('DINGTALK_WEBHOOK')) !=0:
-        notify.sendDing()
+        notify.sendEnterpriseWechat(args.notifyUrl)

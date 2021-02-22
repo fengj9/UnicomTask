@@ -3,14 +3,14 @@
 # @Author  : srcrs
 # @Email   : srcrs@foxmail.com
 
-import base64,rsa,time,requests,logging,traceback,os
+import base64,rsa,time,requests,logging,traceback,cupath
 
 #日志基础配置
 # 创建一个logger
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 # 创建一个handler，用于写入日志文件
-fh = logging.FileHandler('log.txt', mode='w', encoding='utf-8')
+fh = logging.FileHandler(cupath.get_current_path() + '/log.txt', mode='w', encoding='utf-8')
 fh.setFormatter(logging.Formatter("%(message)s"))
 logger.addHandler(fh)
 # 创建一个handler，输出到控制台
@@ -59,16 +59,15 @@ def encryption(message,key):
 
 #进行登录
 #手机号和密码加密代码，参考自这篇文章 http://www.bubuko.com/infodetail-2349299.html?&_=1524316738826
-def login():
+def login(username, password, appId):
     #rsa 公钥
     pubkey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDc+CZK9bBA9IU+gZUOc6FUGu7yO9WpTNB0PzmgFBh96Mg1WrovD1oqZ+eIF4LjvxKXGOdI79JRdve9NPhQo07+uqGQgE4imwNnRx7PFtCRryiIEcUoavuNtuRVoBAm6qdB0SrctgaqGfLgKvZHOnwTjyNqjBUxzMeQlEC2czEMSwIDAQAB"
     #获取公钥的 key
     key = str2key(pubkey)
     #这里对手机号和密码加密，传入参数需是 byte 类型
-    username = encryption(str.encode(os.environ.get('USERNAME_COVER')),key)
-    password = encryption(str.encode(os.environ.get('PASSWORD_COVER')),key)
+    username = encryption(str.encode(username),key)
+    password = encryption(str.encode(password),key)
     #appId 联通后端会验证这个值,如不是常登录设备会触发验证码登录
-    appId = os.environ.get('APPID_COVER')
     #设置一个标志，用户是否登录成功
     flag = False
     
