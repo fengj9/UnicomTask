@@ -1,4 +1,4 @@
-import smtplib,requests,urllib.parse
+import smtplib,requests,urllib.parse,cupath
 
 def readFile(filepath):
     with open(filepath,'r',encoding='UTF-8') as fp:
