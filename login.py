@@ -19,7 +19,7 @@ ch.setFormatter(logging.Formatter("[%(asctime)s]:%(levelname)s:%(message)s"))
 logger.addHandler(ch)
 
 #自动保存会话
-session = requests.Session()
+session = None
 
 #获取公钥的key
 def str2key(s):
@@ -60,6 +60,8 @@ def encryption(message,key):
 #进行登录
 #手机号和密码加密代码，参考自这篇文章 http://www.bubuko.com/infodetail-2349299.html?&_=1524316738826
 def login(username, password, appId):
+    global session
+    session = requests.Session()
     #rsa 公钥
     pubkey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDc+CZK9bBA9IU+gZUOc6FUGu7yO9WpTNB0PzmgFBh96Mg1WrovD1oqZ+eIF4LjvxKXGOdI79JRdve9NPhQo07+uqGQgE4imwNnRx7PFtCRryiIEcUoavuNtuRVoBAm6qdB0SrctgaqGfLgKvZHOnwTjyNqjBUxzMeQlEC2czEMSwIDAQAB"
     #获取公钥的 key

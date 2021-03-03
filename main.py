@@ -13,9 +13,6 @@ parser.add_argument('--lotteryNum', type=int, required=True)
 parser.add_argument('--notifyUrl', type=str, required=True)
 args = parser.parse_args()
 
-#用户登录
-client = login.login(args.username, args.password, args.appid)
-
 #获取沃之树首页，得到领流量的目标值
 def get_woTree_glowList():
     index = client.post('https://m.client.10010.com/mactivity/arbordayJson/index.htm')
@@ -55,12 +52,11 @@ def woTree_task():
 #经多次测试，都可加倍成功了
 #每日签到，1积分 +4 积分(翻倍)，第七天得到 1G 日包
 #位置: 我的 --> 我的金币
-def daySign_task():
-    global args
+def daySign_task(username):
     try:
         #参考同类项目 HiCnUnicom 待明日验证是否能加倍成功
         client.headers.update({'referer': 'https://img.client.10010.com/activitys/member/index.html'})
-        param = 'yw_code=&desmobile=' + args.username + '&version=android@$8.0100'
+        param = 'yw_code=&desmobile=' + username + '&version=android@$8.0100'
         client.get('https://act.10010.com/SigninApp/signin/querySigninActivity.htm?' + param)
         client.headers.update({'referer': 'https://act.10010.com/SigninApp/signin/querySigninActivity.htm?' + param})
         daySign = client.post('https://act.10010.com/SigninApp/signin/daySign')
@@ -298,9 +294,35 @@ def dongaoPoints_task():
         print(traceback.format_exc())
         logging.error('【东奥积分活动】: 错误，原因为: ' + str(e))
 
+#每日1G流量日包领取
+#位置: 签到 --> 免费领 -->  免费领流量
+def dayOneG_Task():
+    try:
+        #观看视频任务
+        client.post('https://act.10010.com/SigninApp/doTask/finishVideo')
+        #请求任务列表
+        getTaskInfo = client.post('https://act.10010.com/SigninApp/doTask/getTaskInfo')
+        getTaskInfo.encoding = 'utf-8'
+        getPrize = client.post('https://act.10010.com/SigninApp/doTask/getPrize')
+        getPrize.encoding = 'utf-8'
+        client.post('https://act.10010.com/SigninApp/doTask/getTaskInfo')
+        res1 = getTaskInfo.json()
+        res2 = getPrize.json()
+        if(res1['data']['taskInfo']['status'] == '1'):
+            logging.info('【1G流量日包】: ' + res2['data']['statusDesc'])
+        else:
+            logging.info('【1G流量日包】: ' + res1['data']['taskInfo']['btn'])
+        time.sleep(1)
+    except Exception as e:
+        print(traceback.format_exc())
+        logging.error('【1G流量日包】: 错误，原因为: ' + str(e))
+
 if __name__ == '__main__':
+    #用户登录
+    client = login.login(args.username, args.password, args.appid)
     if client != False:
-        daySign_task()
+        daySign_task(args.username)
+        dayOneG_Task()
         luckDraw_task()
         pointsLottery_task()
         gameCenterSign_Task()
