@@ -3,7 +3,8 @@
 # @Author  : srcrs
 # @Email   : srcrs@foxmail.com
 
-import requests,json,time,re,login,logging,traceback,random,notify,argparse
+import requests,json,time,re,login,logging,traceback,random,notify,argparse,datetime
+from lxml import etree
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--username', type=str, required=True)
@@ -35,8 +36,8 @@ def woTree_task():
                 logging.info('【沃之树-领流量】: 4M流量 x' + str(num))
             else:
                 logging.info('【沃之树-领流量】: 已领取过 x' + str(num))
-            #等待随机秒钟
-            time.sleep(random.randint(10,20))
+            #等待1秒钟
+            time.sleep(1)
             num = num + 1
         client.post('https://m.client.10010.com/mactivity/arbordayJson/getChanceByIndex.htm?index=0')
         #浇水
@@ -44,7 +45,7 @@ def woTree_task():
         grow.encoding='utf-8'
         res2 = grow.json()
         logging.info('【沃之树-浇水】: 获得' + str(res2['data']['addedValue']) + '培养值')
-        time.sleep(random.randint(10,20))
+        time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【沃之树】: 错误，原因为: ' + str(e))
@@ -76,7 +77,7 @@ def daySign_task(username):
             logging.info('【每日签到】: ' + '打卡成功,' + res2['data']['statusDesc'])
         elif res1['status'] == '0002':
             logging.info('【每日签到】: ' + res1['msg'])
-        time.sleep(random.randint(10,20))
+        time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【每日签到】: 错误，原因为: ' + str(e))
@@ -105,14 +106,14 @@ def luckDraw_task():
             res = luck.json()
             logging.info('【天天抽奖】: ' + res['RspMsg'] + ' x' + str(i+1))
             #等待1秒钟
-            time.sleep(random.randint(10,20))
+            time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
-        logging.error('【每日签到】: 错误，原因为: ' + str(e))
+        logging.error('【天天抽奖】: 错误，原因为: ' + str(e))
 
 #游戏任务中心每日打卡领积分，游戏任务自然数递增至7，游戏频道每日1积分
 #位置: 首页 --> 游戏 --> 每日打卡
-def gameCenterSign_Task():
+def gameCenterSign_Task(username):
     data1 = {
         'methodType': 'signin',
         'clientVersion': '8.0100',
@@ -124,25 +125,33 @@ def gameCenterSign_Task():
         'deviceType': 'iOS'
     }
     try:
-        #游戏任务积分
+        client.get('https://img.client.10010.com/gametask/index.html?yw_code=&desmobile='+username+'&version=android@8.0100')
+        time.sleep(2)
+        headers = {
+            'origin': 'https://img.client.10010.com',
+            'referer': 'https://img.client.10010.com/gametask/index.html?yw_code=&desmobile='+username+'&version=android@8.0100'
+        }
+        client.headers.update(headers)
+        #进行游戏中心签到
         gameCenter = client.post('https://m.client.10010.com/producGame_signin', data=data1)
-        gameCenter.encoding='utf-8'
-        res = gameCenter.json()
-        if res['respCode'] == '0000' and res['respDesc'] == '打卡并奖励成功':
-            logging.info('【游戏中心签到】: ' + '获得' + str(res['currentIntegral']) + '积分')
-        elif res['respCode'] == '0000':
-            logging.info('【游戏中心签到】: ' + res['respDesc'])
-        #等待1秒钟
-        time.sleep(random.randint(10,20))
+        gameCenter.encoding = 'utf-8'
+        res1 = gameCenter.json()
+        if res1['respCode'] == '0000' and res1['respDesc'] == '打卡并奖励成功':
+            logging.info('【游戏中心签到】: ' + '获得' + str(res1['currentIntegral']) + '积分')
+        elif res1['respCode'] == '0000':
+            logging.info('【游戏中心签到】: ' + res1['respDesc'])
+        time.sleep(1)
         #游戏频道积分
         gameCenter_exp = client.post('https://m.client.10010.com/producGameApp',data=data2)
         gameCenter_exp.encoding='utf-8'
-        res1 = gameCenter_exp.json()
-        if res1['code'] == '0000':
-            logging.info('【游戏频道打卡】: 获得' + str(res1['integralNum']) + '积分')
+        res2 = gameCenter_exp.json()
+        if res2['code'] == '0000':
+            logging.info('【游戏频道打卡】: 获得' + str(res2['integralNum']) + '积分')
         else:
-            logging.info('【游戏频道打卡】: ' + res1['msg'])
-        time.sleep(random.randint(10,20))
+            logging.info('【游戏频道打卡】: ' + res2['msg'])
+        client.headers.pop('referer')
+        client.headers.pop('origin')
+        time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【游戏中心签到】: 错误，原因为: ' + str(e))
@@ -150,6 +159,8 @@ def gameCenterSign_Task():
 #开宝箱，赢话费任务 100M 流量
 #位置: 首页 --> 游戏 --> 每日打卡 --> 宝箱任务
 def openBox_task():
+    client.headers.update({'referer': 'https://img.client.10010.com'})
+    client.headers.update({'origin': 'https://img.client.10010.com'})
     data1 = {
         'thirdUrl': 'https://img.client.10010.com/shouyeyouxi/index.html#/youxibaoxiang'
     }
@@ -157,32 +168,38 @@ def openBox_task():
         'methodType': 'reward',
         'deviceType': 'Android',
         'clientVersion': '8.0100',
-        'isVideo': 'Y'
+        'isVideo': 'N'
     }
+    param = '?methodType=taskGetReward&taskCenterId=187&clientVersion=8.0100&deviceType=Android'
     data3 = {
-        'methodType': 'taskGetReward',
-        'taskCenterId': '187',
+        'methodType': 'reward',
+        'deviceType': 'Android',
         'clientVersion': '8.0100',
-        'deviceType': 'Android'
+        'isVideo': 'Y'
     }
     try:
         #在分类中找到宝箱并开启
         box = client.post('https://m.client.10010.com/mobileService/customer/getShareRedisInfo.htm', data=data1)
         box.encoding='utf-8'
+        time.sleep(1)
         #观看视频领取更多奖励
         watchAd = client.post('https://m.client.10010.com/game_box', data=data2)
         watchAd.encoding='utf-8'
         #等待随机秒钟
-        time.sleep(random.randint(10,20))
+        time.sleep(1)
         #完成任务领取100M流量
-        drawReward = client.post('https://m.client.10010.com/producGameTaskCenter', data=data3)
+        drawReward = client.get('https://m.client.10010.com/producGameTaskCenter' + param)
+        time.sleep(1)
+        watchAd = client.post('https://m.client.10010.com/game_box', data=data3)
         drawReward.encoding='utf-8'
         res = drawReward.json()
         if res['code'] == '0000':
             logging.info('【100M寻宝箱】: ' + '获得100M流量')
         else:
             logging.info('【100M寻宝箱】: ' + '任务失败')
-        time.sleep(random.randint(10,20))
+        time.sleep(1)
+        client.headers.pop('referer')
+        client.headers.pop('origin')
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【100M寻宝箱】: 错误，原因为: ' + str(e))
@@ -207,8 +224,8 @@ def collectFlow_task():
                 logging.info('【4G流量包-看视频】: 获得' + res1['addNum'] + 'M流量 x' + str(i+1))
             elif res1['reason'] == '01':
                 logging.info('【4G流量包-看视频】: 已完成' + ' x' + str(i+1))
-            #等待随机秒钟
-            time.sleep(random.randint(10,20))
+            #等待1秒钟
+            time.sleep(1)
             #下软件
             downloadProg = client.post('https://act.10010.com/SigninApp/mySignin/addFlow',data2)
             downloadProg.encoding='utf-8'
@@ -217,8 +234,8 @@ def collectFlow_task():
                 logging.info('【4G流量包-下软件】: 获得' + res2['addNum'] + 'M流量 x' + str(i+1))
             elif res2['reason'] == '01':
                 logging.info('【4G流量包-下软件】: 已完成' + ' x' + str(i+1))
-            #等待随机秒钟
-            time.sleep(random.randint(10,20))
+            #等待1秒钟
+            time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【4G流量包】: 错误，原因为: ' + str(e))
@@ -234,7 +251,7 @@ def day100Integral_task():
         integral.encoding = 'utf-8'
         res = integral.json()
         logging.info("【100定向积分】: " + res['msg'])
-        time.sleep(random.randint(10,20))
+        time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【100定向积分】: 错误，原因为: ' + str(e))
@@ -242,7 +259,7 @@ def day100Integral_task():
 #积分抽奖，可在环境变量中设置抽奖次数，否则每天将只会抽奖一次
 #需要注意的是，配置完抽奖次数，程序每运行一次都将触发积分抽奖，直至达每日30次抽奖用完或积分不够(测试过程中未中过奖)
 #位置: 发现 --> 定向积分 --> 小积分，抽好礼
-def pointsLottery_task():
+def pointsLottery_task(n):
     try:
         numjsp = get_encryptmobile()
         #每日首次免费
@@ -250,7 +267,10 @@ def pointsLottery_task():
         oneFree.encoding = 'utf-8'
         res1 = oneFree.json()
         logging.info("【积分抽奖】: " + res1['RspMsg'] + ' x免费')
-        for i in range(args.lotteryNum):
+        #如果用户未设置此值，将不会自动抽奖
+        #预防用户输入30以上，造成不必要的抽奖操作
+        num = min(30,int(n))
+        for i in range(num):
             #用积分兑换抽奖机会
             client.get('https://m.client.10010.com/dailylottery/static/integral/duihuan?goldnumber=10&banrate=30&usernumberofjsp=' + numjsp)
             #进行抽奖
@@ -259,7 +279,7 @@ def pointsLottery_task():
             res2 = payx.json()
             logging.info("【积分抽奖】: " + res2['RspMsg'] + ' x' + str(i+1))
             #等待随机秒钟
-            time.sleep(random.randint(10,20))
+            time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【积分抽奖】: 错误，原因为: ' + str(e))
@@ -289,7 +309,7 @@ def dongaoPoints_task():
             logging.info('【东奥积分活动】: ' + res1['resdata']['desc'] + '，' + str(point) + '积分')
         else:
             logging.info('【东奥积分活动】: ' + res1['resdata']['desc'] + '，' + res2['resdata']['desc'])
-        time.sleep(random.randint(10,20))
+        time.sleep(1)
     except Exception as e:
         print(traceback.format_exc())
         logging.error('【东奥积分活动】: 错误，原因为: ' + str(e))
@@ -317,18 +337,129 @@ def dayOneG_Task():
         print(traceback.format_exc())
         logging.error('【1G流量日包】: 错误，原因为: ' + str(e))
 
+#获取积分余额
+def getIntegral():
+    try:
+        integral = client.post('https://act.10010.com/SigninApp/signin/getIntegral')
+        integral.encoding = 'utf-8'
+        res = integral.json()
+        logging.info('【积分余额】: ' + res['data']['integralTotal'])
+        time.sleep(1)
+    except Exception as e:
+        print(traceback.format_exc())
+        logging.error('【积分余额】: 错误，原因为: ' + str(e))
+
+#获得我的礼包页面对象
+def getQuerywinning(username):
+    #获得我的礼包页面
+    querywinninglist = client.get(
+        'http://m.client.10010.com/myPrizeForActivity/querywinninglist.htm?yw_code=&desmobile='+str(username)+'&version=android@8.0100')
+    querywinninglist.encoding = 'utf-8'
+    #将页面格式化
+    doc = f"""{querywinninglist.text}"""
+    #转换为html对象
+    html = etree.HTML(doc)
+    return html
+
+#存储并返回未使用的流量包
+def getStorageFlow(username):
+    #获得我的礼包页面
+    html = getQuerywinning(username)
+    #寻找ul下的所有li，在未使用流量包栏页面
+    ul = html.xpath('/html/body/div[1]/div[7]/ul/li')
+    #存储流量包数据
+    datas = []
+    #获得所有流量包的标识并存储
+    for li in ul:
+        data = {
+            'activeCode': None,
+            'prizeRecordID': None,
+            'phone': None
+        }
+        tran = {1:'activeCode',2:'prizeRecordID',3:'phone'}
+        line = li.attrib.get('onclick')
+        #正则匹配字符串 toDetailPage('2534','20210307073111185674422127348889','18566669999');
+        pattern = re.finditer(r'\'[\dA-Za-z]+\'',line)
+        i = 1
+        for match in pattern:
+            data[tran[i]] = match.group()[1:-1]
+            i = i + 1
+        datas.append(data)
+    return datas
+
+#获得流量包的还剩多长时间结束，返回形式时间戳
+def getflowEndTime(username):
+    #获得我的礼包页面对象
+    html = getQuerywinning(username)
+    #获得流量包到期的时间戳
+    endStamp = []
+    endTime = html.xpath('/html/body/div[1]/div[7]/ul/li[*]/div[2]/p[3]')
+    for end in endTime:
+        #寻找起止时间间隔位置
+        #end为空，可能无到期时间和开始时间
+        end = end.text
+        if end != None:
+            index = end.find('-')+1
+            #切割得到流量包失效时间
+            end = end[index:index+10] + ' 23:59:59'
+            end = end.replace('.','-')
+            #将时间转换为时间数组
+            timeArray = time.strptime(end, "%Y-%m-%d %H:%M:%S")
+            #得到时间戳
+            timeStamp = int(time.mktime(timeArray))
+            endStamp.append(timeStamp-int(time.time()))
+        else:
+            #将找不到结束时间的流量包设置为不激活
+            endStamp.append(86401)
+    return endStamp
+
+#激活即将过期的流量包
+def actionFlow(username):
+    #获得所有未使用的流量包
+    datas = getStorageFlow(username)
+    #获得流量包还剩多长时间到期时间戳
+    endTime = getflowEndTime(username)
+    #流量包下标
+    i = 0
+    flag = True
+    for end in endTime:
+        #如果时间小于1天就激活
+        #程序早上7：30运行，正好当天可使用
+        if end < 86400:
+            flag = False
+            param = 'activeCode='+datas[i]['activeCode']+'&prizeRecordID='+datas[i]['prizeRecordID']+'&activeName='+'做任务领奖品'
+            activeData = {
+                'activeCode': datas[i]['activeCode'],
+                'prizeRecordID': datas[i]['prizeRecordID'],
+                'activeName': '做任务领奖品'
+            }
+            #激活流量包
+            res = client.post('http://m.client.10010.com/myPrizeForActivity/myPrize/activationFlowPackages.htm',data=activeData)
+            res.encoding = 'utf-8'
+            res = res.json()
+            if res['status'] == '200':
+                logging.info('【即将过期流量包】: ' + '激活成功')
+            else:
+                logging.info('【即将过期流量包】: ' + '激活失败')
+            time.sleep(8)
+        i = i + 1
+    if flag:
+        logging.info('【即将过期流量包】: 暂无')
+
 if __name__ == '__main__':
     #用户登录
     client = login.login(args.username, args.password, args.appid)
     if client != False:
+        getIntegral()
         daySign_task(args.username)
         dayOneG_Task()
         luckDraw_task()
-        pointsLottery_task()
-        gameCenterSign_Task()
+        pointsLottery_task(args.lotteryNum)
         day100Integral_task()
         dongaoPoints_task()
-        woTree_task()
+        gameCenterSign_Task(args.username)
         openBox_task()
         collectFlow_task()
+        woTree_task()
+        actionFlow(args.username)
         notify.sendEnterpriseWechat(args.notifyUrl)
